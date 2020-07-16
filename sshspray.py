@@ -44,9 +44,9 @@ class Message:
 class KeyChecks:
     KEY_TYPES = [RSAKey, DSSKey, ECDSAKey, Ed25519Key]
 
-    def __init__(self, key_file, password):
+    def __init__(self, key_file, passphrase):
         self.key_file = key_file
-        self.password = password
+        self.passphrase = passphrase
         self.key_file_exists = True
         self.valid_key = False
         self.is_encrypted = False
@@ -61,16 +61,16 @@ class KeyChecks:
             print(Message.info(), "Key {keyfile} does not exist.".format(keyfile=self.key_file))
 
     def decrypt_key(self):
-        if not self.password:
+        if not self.passphrase:
             try:
                 prompt_message = "Enter passphrase for key '{filename}': ".format(filename=self.key_file)
-                self.password = getpass(prompt=prompt_message)
+                self.passphrase = getpass(prompt=prompt_message)
             except KeyboardInterrupt:
                 Message.keyboard_interrupt_exit_msg()
                 exit(1)
         for pk in KeyChecks.KEY_TYPES:
             try:
-                pk.from_private_key_file(self.key_file, self.password)
+                pk.from_private_key_file(self.key_file, self.passphrase)
                 self.valid_key = True
             except Exception as e:
                 if isinstance(e, SSHException):
@@ -207,6 +207,7 @@ def main():
     key_check.do_key_checks()
 
     password = args.password
+    passphrase = args.passphrase
 
     if not key_check.valid_key:
         args.key_file = None
@@ -223,6 +224,9 @@ def main():
         else:
             print(Message.info(), "No keyfile set, using password: {passwd}".format(passwd=args.password))
 
+    if key_check.is_encrypted:
+        passphrase = key_check.passphrase
+
     verbosity = 2 if args.verbose > 2 else args.verbose
     queue = Queue(args.queue_size)
     HostKeys(args.host_key_file)
@@ -234,7 +238,7 @@ def main():
                       key_file=args.key_file,
                       host_key_file=args.host_key_file,
                       password=password,
-                      passphrase=args.passphrase,
+                      passphrase=passphrase,
                       timeout=args.wait,
                       verbosity=verbosity,
                       target_list=targets)
