@@ -1,4 +1,4 @@
-#sshspray
+# sshspray
 
 A multithreaded, queued SSH key and/or password spraying tool.
 
@@ -32,5 +32,5 @@ optional arguments:
   -w [WAIT], --wait [WAIT]
                         Timeout for each connection in seconds
 ```
-####Author
+#### Author
 M. Cory Billington
