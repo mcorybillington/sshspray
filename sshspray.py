@@ -10,6 +10,7 @@ from queue import Queue
 from sys import exit
 from re import compile
 from os import devnull
+from paramiko.ssh_exception import NoValidConnectionsError
 
 from os.path import isfile
 
@@ -138,17 +139,27 @@ class Sprayer:
         ssh = SSHClient()
         ssh.set_missing_host_key_policy(AutoAddPolicy())
         conn_params = self.conn_params(ip)
-        try:
-            ssh.connect(**conn_params)
-            ssh.close()
+        retry = 5
+        while retry > 0:
+            try:
+                ssh.connect(**conn_params)
+                ssh.close()
 
-            print(Message.success(), ip)
-        except Exception as e:
-            if not self.verbose:
-                pass
-            else:
-                output = [Message.fail(), ip, e]
-                print(*output[0:self.verbose+1])
+                print(Message.success(), ip)
+            except NoValidConnectionsError as e:
+                retry -= 1
+                if retry > 0:
+                    continue
+                else:
+                    print(Message.info(), f'Failed to connect to {ip}')
+                    return
+            except Exception as e:
+                if not self.verbose:
+                    pass
+                else:
+                    output = [Message.fail(), ip, e]
+                    print(*output[0:self.verbose+1])
+                return
 
     def run(self) -> None:
         print(Message.info(), "Running against {hostcount} hosts...".format(hostcount=len(self.target_list)))
