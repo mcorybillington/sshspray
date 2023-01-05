@@ -106,7 +106,7 @@ class KeyChecks:
 
 class Sprayer:
     def __init__(self, queue, username, key_file, password, passphrase,
-                 host_key_file, port, timeout, target_list, verbosity):
+                 host_key_file, port, timeout, retry, target_list, verbosity):
         self.queue = queue
         self.username = username
         self.key_file = key_file
@@ -115,6 +115,7 @@ class Sprayer:
         self.host_key_file = host_key_file
         self.port = port
         self.timeout = timeout
+        self.retry = retry
         self.verbose = verbosity
         self.target_list = target_list
 
@@ -139,7 +140,7 @@ class Sprayer:
         ssh = SSHClient()
         ssh.set_missing_host_key_policy(AutoAddPolicy())
         conn_params = self.conn_params(ip)
-        retry = 5
+        retry = self.retry
         while retry > 0:
             try:
                 ssh.connect(**conn_params)
@@ -191,6 +192,7 @@ def arg_parse():
     parser.add_argument("-v", "--verbose", action='count', default=0, help="Show failures. Use '-vv-' to show reasons for failure")
     parser.add_argument("-t", "--target-list", required=True, help="List of hosts to test(hostname, ip, and/or CIDR)")
     parser.add_argument("-w", "--wait", nargs='?', default=1, type=int, help="Timeout for each connection in seconds")
+    parser.add_argument("-r", "--retry", default=3, type=int, help="Times to retry in case of network failure")
     return parser.parse_args()
 
 
@@ -252,7 +254,8 @@ def main():
                       passphrase=passphrase,
                       timeout=args.wait,
                       verbosity=verbosity,
-                      target_list=targets)
+                      target_list=targets,
+                      retry=args.retry)
     sprayer.run()
 
 
